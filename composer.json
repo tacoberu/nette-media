@@ -1,0 +1,41 @@
+{
+    "name": "tacoberu/nette-media",
+    "description": "On-the-fly generated web images for your Nette app. Very inspired (and copy) from dotBlue (http://dotblue.net).",
+    "type": "library",
+    "keywords": [
+        "routing",
+        "images",
+        "media",
+        "nette"
+    ],
+    "license": ["MIT"],
+    "authors": [
+        {
+            "name": "Martin Takáč",
+            "homepage": "http://martin.takac.name"
+        },
+        {
+            "name": "Vojtěch Dobeš",
+            "homepage": "http://github.com/vojtech-dobes"
+        },
+        {
+            "name": "dotBlue",
+            "homepage": "http://dotblue.net"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/tacoberu/nette-media/issues",
+        "source": "https://github.com/tacoberu/nette-media"
+    },
+    "require": {
+        "php": ">=5.4",
+        "nette/application": ">=2.2.0,<2.5.0",
+        "nette/di": ">=2.2.0,<2.5.0",
+        "nette/http": ">=2.2.0,<2.5.0",
+        "latte/latte": ">=2.2.0,<2.5.0",
+        "nette/utils": ">=2.2.0,<2.5.0"
+    },
+    "autoload": {
+        "classmap": ["src/"]
+    }
+}
