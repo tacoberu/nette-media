@@ -20,8 +20,11 @@ use Nette\Utils\Image as NImage;
 /**
  * Poskytuje obrázky. Obrázky kešuje, validuje.
  */
-class Generator extends Nette\Object
+class Generator
 {
+
+	use Nette\SmartObject;
+
 
 	const FORMAT_JPEG = NImage::JPEG;
 	const FORMAT_PNG = NImage::PNG;

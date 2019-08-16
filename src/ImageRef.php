@@ -15,8 +15,10 @@ namespace Taco\NetteWebImages;
 use Nette;
 
 
-class ImageRef extends Nette\Object implements Ref
+class ImageRef implements Ref
 {
+
+	use Nette\SmartObject;
 
 	private $ref;
 
