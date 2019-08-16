@@ -33,7 +33,7 @@
         "nette/di": ">=2.2.0,<2.5.0",
         "nette/http": ">=2.2.0,<2.5.0",
         "latte/latte": ">=2.2.0,<2.5.0",
-        "nette/utils": ">=2.2.0,<2.5.0"
+        "nette/utils": ">=2.2.0,<2.6.0"
     },
     "autoload": {
         "classmap": ["src/"]
