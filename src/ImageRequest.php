@@ -14,6 +14,9 @@ namespace Taco\NetteWebImages;
 use Nette;
 
 
+/**
+ * @property array $parameters
+ */
 class ImageRequest
 {
 

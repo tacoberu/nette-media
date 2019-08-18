@@ -15,6 +15,8 @@ use Nette;
 use Nette\Application;
 use Nette\Http;
 use Nette\Utils\Image as NImage;
+use Nette\Utils\Validators as NValidators;
+use LogicException;
 
 
 /**
@@ -125,11 +127,15 @@ class Generator
 	/**
 	 * @return Nette\Utils\Image
 	 */
-	private function resize($image, $quality, $format, $width, $height, $algorithm)
+	private function resize(Image $image, $quality, $format, $width, $height, $algorithm)
 	{
+		NValidators::assert($quality, 'int');
+		NValidators::assert($width, 'int:1..');
+		NValidators::assert($height, 'int:1..');
+		NValidators::assert($algorithm, 'string');
 		// @FIXME Taková divočina. To s tím vlastním Image nechce moc dobře fungovat.
 		$nimage = $image->getNetteImage();
-		$nimage->resize($width, $height, $algorithm);
+		$nimage->resize($width, $height, self::castAlgorithm($algorithm));
 		return $nimage;
 	}
 
@@ -165,6 +171,26 @@ class Generator
 			if (!$success) {
 				throw new Application\BadRequestException;
 			}
+		}
+	}
+
+
+
+	private static function castAlgorithm($s)
+	{
+		switch ($s) {
+			case 'shrink':
+				return NImage::SHRINK_ONLY;
+			case 'stretch':
+				return NImage::STRETCH;
+			case 'fit':
+				return NImage::FIT;
+			case 'fill':
+				return NImage::FILL;
+			case 'exact':
+				return NImage::EXACT;
+			default:
+				throw new LogicException("Unsupported algorithm: $s.");
 		}
 	}
 

@@ -77,7 +77,7 @@ class Route extends Application\Routers\Route
 					throw new NotAllowedImageException("Image extension must by used. Extension from `" . implode(', ', array_keys(self::$supportedFormats)) . "'.");
 				}
 				list($id, $ext) = $pair;
-				$parameters['id'] = $pair[0];
+				$parameters['id'] = self::escape($pair[0]);
 				$parameters['ext'] = $pair[1];
 			}
 
@@ -114,7 +114,7 @@ class Route extends Application\Routers\Route
 		$parameters = $this->unpackParameters($presenter->getRequest()->getParameters());
 		unset($parameters['callback']);
 
-		$ext = $parameters['ext'];
+		$ext = strtolower($parameters['ext']);
 		unset($parameters['ext']);
 
 		$id = $parameters['id'];
@@ -127,7 +127,7 @@ class Route extends Application\Routers\Route
 
 		$this->generator->generateImage(new ImageRequest(
 			$format,
-			self::sanitizeId($id),
+			self::unescape($id),
 			$this->acquireArgument('width', $parameters),
 			$this->acquireArgument('height', $parameters),
 			$parameters
@@ -140,7 +140,8 @@ class Route extends Application\Routers\Route
 	{
 		if (isset($data[$name])) {
 			return $data[$name];
-		} elseif (isset($this->defaults[$name])) {
+		}
+		elseif (isset($this->defaults[$name])) {
 			return $this->defaults[$name];
 		}
 	}
@@ -149,7 +150,7 @@ class Route extends Application\Routers\Route
 
 	/**
 	 * Rozdělí cestu se jménem souboru od přípony, ze které se pak určuje formát.
-	 * @return [string, string]
+	 * @return [id: string, ext: string]
 	 */
 	private function parseFormat($id)
 	{
@@ -184,9 +185,16 @@ class Route extends Application\Routers\Route
 	/**
 	 * Používáme dvojtečku pro oddělení namespace, namísto lomítka. Protože lomítku nette router parsuje.
 	 */
-	private static function sanitizeId($id)
+	private static function unescape($id)
 	{
 		return strtr($id, ':', '/');
+	}
+
+
+
+	private static function escape($id)
+	{
+		return strtr($id, '/', ':');
 	}
 
 }
