@@ -107,7 +107,7 @@ class Generator
 				break;
 		}
 
-		if (isset($params['size'])) {
+		if (isset($params['size']) && ! self::smallestThan($image, $request)) {
 			$algorithm = isset($params['algorithm']) ? $params['algorithm'] : 'fit';
 			$width = $request->getWidth();
 			$height = $request->getHeight();
@@ -120,6 +120,14 @@ class Generator
 
 		$image->send($request->getFormat(), $quality);
 		exit;
+	}
+
+
+
+	private function smallestThan($image, $request)
+	{
+		$image = $image->getNetteImage();
+		return ! ($image->getWidth() > $request->getWidth() && $image->getHeight() > $request->getHeight());
 	}
 
 
