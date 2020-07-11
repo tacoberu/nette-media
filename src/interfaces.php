@@ -33,3 +33,18 @@ interface Ref
 	function getRef();
 
 }
+
+
+
+interface Content
+{
+
+	function getContentType();
+
+	function getSize();
+
+	function getName();
+
+	function getContent();
+
+}

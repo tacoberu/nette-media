@@ -90,6 +90,20 @@ class Generator
 
 
 
+	function generateDownload($id)
+	{
+		$file = $this->requireFileItem($id);
+		$this->httpResponse->setHeader('Content-Type', $file->getContentType());
+		$length = $file->getSize();
+		$this->httpResponse->setHeader('Content-Length', $length);
+		$this->httpResponse->setHeader('Content-Disposition', 'attachment'
+			. '; filename="' . $file->getName() . '"'
+			. '; filename*=utf-8\'\'' . rawurlencode($file->getName()));
+		echo $file->getContent();
+	}
+
+
+
 	function generateFile($id)
 	{
 		$file = $this->requireFileItem($id);

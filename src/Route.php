@@ -110,6 +110,11 @@ class Route extends Application\Routers\Route
 		$id = $parameters['id'];
 		unset($parameters['id']);
 
+		if (array_key_exists('download', $parameters)) {
+			$this->generator->generateDownload(self::unescape($id));
+			return;
+		}
+
 		$ext = self::parseExtension($id);
 		if (empty($ext)) {
 			$ext = $this->generator->guessExtension($id);

@@ -12,6 +12,7 @@
 namespace Taco\NetteWebImages;
 
 use Nette\Utils\Validators;
+use SplFileInfo;
 
 
 class DefaultImageProvider implements IProvider
@@ -47,4 +48,18 @@ class DefaultImageProvider implements IProvider
 		}
 	}
 
+
+
+	/**
+	 * @return Content
+	 */
+	function getContent($id)
+	{
+		$path = $this->sourceDir . '/' . $id;
+		if (is_file($path)) {
+			return new FileContent(new SplFileInfo($path));
+		}
+	}
+
 }
+
