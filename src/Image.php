@@ -11,6 +11,7 @@
 namespace Taco\NetteWebImages;
 
 use Nette\Utils\Image as NImage;
+use Nette;
 
 
 /**
@@ -143,7 +144,10 @@ class Image
 
 	private static function typeFromFile($file)
 	{
-		switch (strtolower($ext = pathinfo($file, PATHINFO_EXTENSION))) {
+		if ( ! $ext = pathinfo($file, PATHINFO_EXTENSION)) {
+			$ext = self::typeFromFileContent($file);
+		}
+		switch (strtolower($ext)) {
 			case 'jpg':
 			case 'jpeg':
 				return NImage::JPEG;
@@ -152,8 +156,24 @@ class Image
 			case 'gif':
 				return NImage::GIF;
 			default:
-				throw new Nette\InvalidArgumentException("Unsupported file extension '$ext'.");
+				throw new Nette\InvalidArgumentException("Unsupported file extension '$file'.");
 		}
 	}
+
+
+
+	private static function typeFromFileContent($file)
+	{
+		$type = mime_content_type((string)$file);
+		if (empty($type)) {
+			return Null;
+		}
+		list($category, $type) = explode('/', $type, 2);
+		if ($category != 'image') {
+			return Null;
+		}
+		return $type;
+	}
+
 
 }

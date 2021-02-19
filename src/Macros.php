@@ -86,7 +86,8 @@ class Macros extends Latte\Macros\MacroSet
 			if ($key === 0 && !isset($arguments['id'])) {
 				$arguments['id'] = $value;
 				unset($arguments[$key]);
-			} elseif ($key === 1 && !isset($arguments['size'])) {
+			}
+			elseif ($key === 1 && !isset($arguments['size'])) {
 				$arguments['size'] = $value;
 				unset($arguments[$key]);
 			}

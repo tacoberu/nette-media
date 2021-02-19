@@ -75,6 +75,31 @@ class Generator
 
 
 
+	function guessExtension($id)
+	{
+		$file = $this->requireFileItem($id);
+		if ( ! $type = $file->getContentType()) {
+			return Null;
+		}
+		list($category, $type) = explode('/', $type, 2);
+		if ($category != 'image') {
+			return Null;
+		}
+		return $type;
+	}
+
+
+
+	function generateFile($id)
+	{
+		$file = $this->requireFileItem($id);
+		$this->httpResponse->setHeader('Content-Type', $file->getContentType());
+		$this->httpResponse->setHeader('Content-Length', $file->getSize());
+		echo $file->getContent();
+	}
+
+
+
 	function generateImage(ImageRequest $request)
 	{
 		// Load from cache.
@@ -120,6 +145,22 @@ class Generator
 
 		$image->send($request->getFormat(), $quality);
 		exit;
+	}
+
+
+
+	private function requireFileItem($id)
+	{
+		foreach ($this->providers as $provider) {
+			$file = $provider->getContent($id);
+			if ($file) {
+				return $file;
+			}
+		}
+		//~ $this->httpResponse->setHeader('Content-Type', 'image/jpeg');
+		//~ $this->httpResponse->setCode(Http\IResponse::S404_NOT_FOUND);
+		//~ exit;
+		throw new Application\BadRequestException("File '{$id}' is not found.", Http\IResponse::S404_NOT_FOUND);
 	}
 
 

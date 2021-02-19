@@ -55,7 +55,7 @@ class Route extends Application\Routers\Route
 
 
 	/**
-	 * @param  string "assets-<id>[-<size>].<ext>
+	 * @param  string "assets-<id>[-<size>]
 	 * @param  array ?
 	 * @param  Generator
 	 * @param  int|NULL ?
@@ -71,15 +71,8 @@ class Route extends Application\Routers\Route
 				throw new NotAllowedImageException("Image with size `{$size}' is not allowed - check your 'webimages.rules' please.");
 			}
 
-			if ( ! isset($parameters['ext'])) {
-				$id = $this->acquireArgument('id', $parameters);
-				if ( ! $pair = $this->parseFormat($id)) {
-					throw new NotAllowedImageException("Image extension must by used. Extension from `" . implode(', ', array_keys(self::$supportedFormats)) . "'.");
-				}
-				list($id, $ext) = $pair;
-				$parameters['id'] = self::escape($pair[0]);
-				$parameters['ext'] = $pair[1];
-			}
+			$id = $this->acquireArgument('id', $parameters);
+			$parameters['id'] = self::escape($id);
 
 			if (isset($this->defaults[NULL][self::FILTER_OUT])) {
 				$parameters = call_user_func($this->defaults[NULL][self::FILTER_OUT], $parameters);
@@ -114,24 +107,26 @@ class Route extends Application\Routers\Route
 		$parameters = $this->unpackParameters($presenter->getRequest()->getParameters());
 		unset($parameters['callback']);
 
-		$ext = strtolower($parameters['ext']);
-		unset($parameters['ext']);
-
 		$id = $parameters['id'];
 		unset($parameters['id']);
 
-		if (!isset(self::$supportedFormats[$ext])) {
-			throw new NotAllowedImageException("Format '$ext' is not supported.");
+		$ext = self::parseExtension($id);
+		if (empty($ext)) {
+			$ext = $this->generator->guessExtension($id);
 		}
-		$format = self::$supportedFormats[$ext];
-
-		$this->generator->generateImage(new ImageRequest(
-			$format,
-			self::unescape($id),
-			$this->acquireArgument('width', $parameters),
-			$this->acquireArgument('height', $parameters),
-			$parameters
-		));
+		if ( ! isset(self::$supportedFormats[$ext])) {
+			$this->generator->generateFile(self::unescape($id));
+		}
+		else {
+			$format = self::$supportedFormats[$ext];
+			$this->generator->generateImage(new ImageRequest(
+				$format,
+				self::unescape($id),
+				$this->acquireArgument('width', $parameters),
+				$this->acquireArgument('height', $parameters),
+				$parameters
+			));
+		}
 	}
 
 
@@ -150,18 +145,17 @@ class Route extends Application\Routers\Route
 
 	/**
 	 * Rozdělí cestu se jménem souboru od přípony, ze které se pak určuje formát.
-	 * @return [id: string, ext: string]
+	 * @return string|null
 	 */
-	private function parseFormat($id)
+	private function parseExtension($id)
 	{
 		if ($id instanceof Ref) {
 			$id = $id->getRef();
 		}
 		if ($index = strrpos($id, '.')) {
-			return [
-				substr($id, 0, $index),
-				substr($id, $index + 1)];
+			return substr($id, $index + 1);
 		}
+		return Null;
 	}
 
 
@@ -176,7 +170,6 @@ class Route extends Application\Routers\Route
 			$opts = $this->generator->getValidator()->validate($size);
 			$args = array_merge($args, $opts);
 		}
-		$args['id'] = $args['id'] . '.' . $args['ext'];
 		return $args;
 	}
 
@@ -187,6 +180,9 @@ class Route extends Application\Routers\Route
 	 */
 	private static function unescape($id)
 	{
+		if ($id instanceof Ref) {
+			$id = $id->getRef();
+		}
 		return strtr($id, ':', '/');
 	}
 
@@ -194,6 +190,9 @@ class Route extends Application\Routers\Route
 
 	private static function escape($id)
 	{
+		if ($id instanceof Ref) {
+			$id = $id->getRef();
+		}
 		return strtr($id, '/', ':');
 	}
 
