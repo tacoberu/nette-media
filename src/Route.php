@@ -26,17 +26,6 @@ class Route extends Application\Routers\Route
 	const FORMAT_PNG = 'png';
 	const FORMAT_GIF = 'gif';
 
-	/** @var string|NULL */
-	private $id;
-
-	/** @var string|NULL */
-	private $format;
-
-	/** @var string */
-	private $idParameter = 'id';
-
-	/** @var string|NULL */
-	private $formatParameter;
 
 	/** @var array */
 	static $supportedFormats = [
@@ -85,19 +74,6 @@ class Route extends Application\Routers\Route
 		$defaults['callback'] = $this;
 
 		parent::__construct($mask, $defaults, $flags);
-	}
-
-
-
-	/**
-	 * @deprecated ?
-	 * @param  string
-	 * @return Route provides a fluent interface
-	 */
-	function setFormat($format)
-	{
-		$this->format = $format;
-		return $this;
 	}
 
 

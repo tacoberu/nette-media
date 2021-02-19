@@ -100,6 +100,7 @@ class Generator
 			. '; filename="' . $file->getName() . '"'
 			. '; filename*=utf-8\'\'' . rawurlencode($file->getName()));
 		echo $file->getContent();
+		exit;
 	}
 
 
@@ -110,6 +111,7 @@ class Generator
 		$this->httpResponse->setHeader('Content-Type', $file->getContentType());
 		$this->httpResponse->setHeader('Content-Length', $file->getSize());
 		echo $file->getContent();
+		exit;
 	}
 
 

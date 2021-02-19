@@ -25,8 +25,7 @@ class Extension extends DI\CompilerExtension
 		'rules' => [],
 		'providers' => [],
 		// úložiště pro nakešovaná data
-		'cacheDir' => '%wwwDir%',
-		'format' => Route::FORMAT_JPEG,
+		'cacheDir' => '%wwwDir%'
 	];
 
 
@@ -73,17 +72,6 @@ class Extension extends DI\CompilerExtension
 					}
 				}
 
-				if (!isset($definition['format'])) {
-					$definition['format'] = $this->recognizeFormatInMask($definition['mask']) ?: $config['format'];
-				}
-
-				if (!isset($definition['format'])) {
-					$definition['format'] = $this->recognizeFormatInMask($definition['mask']) ?: $config['format'];
-					if (!isset(Route::$supportedFormats[$definition['format']])) {
-						throw new InvalidConfigException("Format '$definition[format]' isn't supported.");
-					}
-				}
-
 				$route = $container->addDefinition($this->prefix('route' . $i))
 					->setClass('Taco\NetteWebImages\Route', [
 						$definition['mask'],
@@ -103,16 +91,6 @@ class Extension extends DI\CompilerExtension
 							$definition['id'],
 						]);
 					}
-				}
-
-				if ($parameter = $this->recognizeMaskParameter($definition['format'])) {
-					$route->addSetup('setFormatParameter', [
-						$parameter,
-					]);
-				} else {
-					$route->addSetup('setFormat', [
-						$definition['format'],
-					]);
 				}
 
 				$router->addSetup('$service[] = ?', [
@@ -171,24 +149,6 @@ class Extension extends DI\CompilerExtension
 	{
 		if ((substr($value, 0, 1) === '<') && (substr($value, -1) === '>')) {
 			return substr($value, 1, -1);
-		}
-	}
-
-
-
-	/**
-	 * @param  string
-	 * @return string|NULL
-	 */
-	private function recognizeFormatInMask($mask)
-	{
-		$possibleFormats = array_map(function ($format) {
-			return '.' . $format;
-		}, array_keys(Route::$supportedFormats));
-		if (in_array(substr($mask, -5), $possibleFormats)) {
-			return substr($mask, -4);
-		} elseif (in_array(substr($mask, -4), $possibleFormats)) {
-			return substr($mask, -3);
 		}
 	}
 
