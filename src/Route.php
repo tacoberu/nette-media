@@ -57,7 +57,7 @@ class Route extends Application\Routers\Route
 		$defaults[NULL][self::FILTER_OUT] = function ($parameters) {
 			$size = $this->acquireArgument('size', $parameters);
 			if ($size && ! $opts = $this->generator->getValidator()->validate($size)) {
-				throw new NotAllowedImageException("Image with size `{$size}' is not allowed - check your 'webimages.rules' please.");
+				return False;
 			}
 
 			$id = $this->acquireArgument('id', $parameters);
