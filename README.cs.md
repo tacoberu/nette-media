@@ -1,53 +1,53 @@
 Nette media
 ===========
 
-Manage and provide files and images in Nette. On-the-fly generated images thumbnails for your Nette app. Very inspired (and copy) from dotBlue (http://dotblue.net).
+Správa a poskytování souborů a obrázků v Nette. On-the-fly generování náhledů obrázků pro vaši Nette aplikaci. Velmi inspirováno (a kopírováno) z dotBlue (http://dotblue.net).
 
-We upload images to some storage. We provide specific previews
-pictures. Allows you to download files.
+Uploadujeme obrázky do nějakého úložiště. Poskytujeme konkrétní náhledy
+obrázků. Umožňuje stahování souborů.
 
 
 
-## Using in a template
+## Odkazování v šabloně
 
-Original image:
+Původní obrázek:
 
 	<img n:media="users/david.jpg">
 	<a href={media users/david.jpg}>
 
 
-Image preview. We choose from predetermined variants (protection against DoS). The preview is generated automatically on request and saved for the next time.
+Náhled obrázku. Volíme z předem určených variant (ochrana před DoS). Náhled se nám vygeneruje automaticky na požádání a uloží pro příště.
 
 	<a href={media users/david.jpg, small}>
 	<img n:media="users/david.jpg, small">
 
 
-Image forced to download:
+Obrázek vynucený ke stažení:
 
 	<a href={download users/david.jpg}>
 
 
-And non-image file:
+A neobrázkový soubor:
 
 	<a href={media users/david.pdf}>
 	<link rel="stylesheet" media="screen,projection,tv" href="{media screen.css}" />
 
 
 
-## Configuration
+## Konfigurace
 
 	extensions:
 		media: Taco\NetteWebImages\Extension
 
 	media:
-		# Where to save thumbnails. It can be lubricated at any time.
+		# Kam se mají ukládat náhledy. Je možné kdykoliv promazat.
 		cacheDir: %appDir%/../temp/assets
-		# Where source images are taken.
+		# Kde se berou zdrojové obrázky.
 		providers:
 			- Taco\NetteWebImages\DefaultImageProvider(%appDir%/../../var/uploads)
 		routes:
 			- 'assets/<id>'
-		# Transformations over images. Typically thumbnails.
+		# Transformace nad obrázky. Typicky náhledy.
 		rules:
 			medium: [width: 300, height: 200, algorithm: fit, quality: 75]
 			small:  [width: 100, height: 100, algorithm: fit, quality: 75]
