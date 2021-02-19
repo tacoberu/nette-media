@@ -36,10 +36,10 @@ class Extension extends DI\CompilerExtension
 		$config = $this->getConfig($this->defaults);
 
 		$validator = $container->addDefinition($this->prefix('validator'))
-			->setClass('Taco\NetteWebImages\Validator');
+			->setClass(Validator::class);
 
 		$generator = $container->addDefinition($this->prefix('generator'))
-			->setClass('Taco\NetteWebImages\Generator', [
+			->setClass(Generator::class, [
 				$config['cacheDir'],
 			]);
 
@@ -73,7 +73,7 @@ class Extension extends DI\CompilerExtension
 				}
 
 				$route = $container->addDefinition($this->prefix('route' . $i))
-					->setClass('Taco\NetteWebImages\Route', [
+					->setClass(Route::class, [
 						$definition['mask'],
 						$definition['defaults'],
 						$this->prefix('@generator'),
@@ -112,8 +112,9 @@ class Extension extends DI\CompilerExtension
 			$generator->addSetup('addProvider', [$this->prefix('@provider' . $name)]);
 		}
 
-		$latte = $container->getDefinition('nette.latteFactory');
-		$latte->addSetup('Taco\NetteWebImages\Macros::install(?->getCompiler())', ['@self']);
+		if ($latte = $container->getDefinition('nette.latteFactory')) {
+			$latte->addSetup(Macros::class . '::install(?->getCompiler())', ['@self']);
+		}
 	}
 
 
@@ -132,7 +133,7 @@ class Extension extends DI\CompilerExtension
 			} else {
 				$router = $container->getDefinition('router');
 			}
-			$router->addSetup('Taco\NetteWebImages\Helpers::prependRoute', [
+			$router->addSetup(Helpers::class . '::prependRoute', [
 				'@self',
 				$this->prefix('@router'),
 			]);
