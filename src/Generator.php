@@ -48,7 +48,7 @@ class Generator
 	private $providers = [];
 
 
-	function __construct($cacheDir, Http\IRequest $httpRequest, Http\IResponse $httpResponse, Validator $validator)
+	function __construct(string $cacheDir, Http\IRequest $httpRequest, Http\IResponse $httpResponse, Validator $validator)
 	{
 		$this->cacheDir = $cacheDir;
 		$this->httpRequest = $httpRequest;

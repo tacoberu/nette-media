@@ -11,69 +11,95 @@
 
 namespace Taco\NetteWebImages;
 
+use Nette;
 use Nette\Application\Routers\Route as NetteRoute;
+use Nette\Bridges\ApplicationLatte\ILatteFactory;
 use Nette\DI;
+use Nette\DI\Definitions\Statement;
+use Nette\Schema\Expect;
+use Latte;
 
 
 class Extension extends DI\CompilerExtension
 {
 
-	/** @var array */
-	private $defaults = [
-		'routes' => [],
-		'prependRoutesToRouter' => TRUE,
-		'rules' => [],
-		'providers' => [],
-		// úložiště pro nakešovaná data
-		'cacheDir' => '%wwwDir%'
-	];
+	/**
+	 * úložiště pro nakešovaná data
+	 * @var string
+	 */
+	private string $cacheDir;
+
+
+	function __construct($cacheDir)
+	{
+		$this->cacheDir = $cacheDir;
+	}
+
+
+
+	function getConfigSchema(): Nette\Schema\Schema
+	{
+		return Expect::structure([
+			'prependRoutesToRouter' => Expect::bool()->default(True),
+			'injectToLatte' => Expect::bool()->default(True),
+			'cacheDir' => Expect::string()->default($this->cacheDir),
+			'routes' => Expect::listOf('string'),
+			'rules' => Expect::arrayOf(Expect::structure([
+				'width' => Expect::int(),
+				'height' => Expect::int(),
+				'algorithm' => Expect::string(),
+				'quality' => Expect::int(),
+			]), 'string'),
+			'providers' => Expect::listOf(Statement::class),
+		]);
+	}
 
 
 
 	function loadConfiguration()
 	{
 		$container = $this->getContainerBuilder();
-		$config = $this->getConfig($this->defaults);
 
 		$validator = $container->addDefinition($this->prefix('validator'))
 			->setClass(Validator::class);
 
 		$generator = $container->addDefinition($this->prefix('generator'))
-			->setClass(Generator::class, [
-				$config['cacheDir'],
+			->setFactory(Generator::class, [
+				'cacheDir' => $this->getConfig()->cacheDir,
 			]);
 
-		foreach ($config['rules'] as $name => $rule) {
+		foreach ($this->getConfig()->rules as $name => $rule) {
 			$validator->addSetup('$service->addRule(?, ?, ?, ?, ?)', [
 				$name,
-				$rule['width'],
-				$rule['height'],
-				isset($rule['algorithm']) ? $rule['algorithm'] : Null,
-				isset($rule['quality']) ? $rule['quality'] : Null,
+				$rule->width,
+				$rule->height,
+				isset($rule->algorithm) ? $rule->algorithm : Null,
+				isset($rule->quality) ? $rule->quality : Null,
 			]);
 		}
 
-		if ($config['routes']) {
+		if (count($this->getConfig()->routes)) {
 			$router = $container->addDefinition($this->prefix('router'))
-				->setClass('Nette\Application\Routers\RouteList')
+				->setClass(Nette\Application\Routers\RouteList::class)
 				->addTag($this->prefix('routeList'))
 				->setAutowired(False);
 
 			$i = 0;
-			foreach ($config['routes'] as $route => $definition) {
+			foreach ($this->getConfig()->routes as $route => $definition) {
 				if (!is_array($definition)) {
 					$definition = [
 						'mask' => $definition,
 						'defaults' => [],
 					];
-				} else {
+				}
+				else {
 					if (!isset($definition['defaults'])) {
 						$definition['defaults'] = [];
 					}
 				}
 
 				$route = $container->addDefinition($this->prefix('route' . $i))
-					->setClass(Route::class, [
+					->setFactory(Route::class, [
 						$definition['mask'],
 						$definition['defaults'],
 						$this->prefix('@generator'),
@@ -86,7 +112,8 @@ class Extension extends DI\CompilerExtension
 						$route->addSetup('setIdParameter', [
 							$parameter,
 						]);
-					} else {
+					}
+					else {
 						$route->addSetup('setId', [
 							$definition['id'],
 						]);
@@ -101,19 +128,24 @@ class Extension extends DI\CompilerExtension
 			}
 		}
 
-		if (count($config['providers']) === 0) {
+		if (empty($this->getConfig()->providers)) {
 			throw new InvalidConfigException("You have to register at least one IProvider in '" . $this->prefix('providers') . "' directive.");
 		}
 
-		foreach ($config['providers'] as $name => $provider) {
-			$this->compiler->parseServices($container, [
-				'services' => [$this->prefix('provider' . $name) => $provider],
-			]);
-			$generator->addSetup('addProvider', [$this->prefix('@provider' . $name)]);
+		foreach ($this->getConfig()->providers as $name => $provider) {
+			$generator->addSetup('addProvider', [$provider]);
 		}
 
-		if ($latte = $container->getDefinition('nette.latteFactory')) {
-			$latte->addSetup(Macros::class . '::install(?->getCompiler())', ['@self']);
+		if ($this->config->injectToLatte) {
+			$latteFactory = $container->getDefinitionByType(ILatteFactory::class);
+			if (version_compare(Latte\Engine::VERSION, '3', '<')) {
+				$latteFactory->getResultDefinition()
+					->addSetup('?->onCompile[] = function ($engine) { ' . Macros::class . '::install($engine->getCompiler()); }'
+						, ['@self']);
+			}
+			else {
+				throw new \LogicException('comming soon...');
+			}
 		}
 	}
 
@@ -122,10 +154,9 @@ class Extension extends DI\CompilerExtension
 	function beforeCompile()
 	{
 		$container = $this->getContainerBuilder();
-		$config = $this->getConfig($this->defaults);
 
-		if ($config['prependRoutesToRouter']) {
-			$router = $container->getByType('Nette\Application\IRouter');
+		if ($this->getConfig()->prependRoutesToRouter) {
+			$router = $container->getByType(Nette\Application\IRouter::class);
 			if ($router) {
 				if (!$router instanceof DI\ServiceDefinition) {
 					$router = $container->getDefinition($router);

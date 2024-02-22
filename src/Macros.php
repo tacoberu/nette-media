@@ -60,7 +60,7 @@ class Macros extends Latte\Macros\MacroSet
 		$node->modifiers = preg_replace('#\|safeurl\s*(?=\||\z)#i', '', $node->modifiers);
 		$args['download'] = true;
 		return $writer->using($node)
-			->write('echo %escape(%modify($_presenter->link("' . $absolute . ':Nette:Micro:", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
+			->write('echo %escape(%modify($this->global->uiPresenter->link("' . $absolute . ':Nette:Micro:", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
 	}
 
 
@@ -80,7 +80,7 @@ class Macros extends Latte\Macros\MacroSet
 		self::assertCountArgs($args);
 		$node->modifiers = preg_replace('#\|safeurl\s*(?=\||\z)#i', '', $node->modifiers);
 		return $writer->using($node)
-			->write('echo %escape(%modify($_presenter->link("' . $absolute . ':Nette:Micro:", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
+			->write('echo %escape(%modify($this->global->uiControl->link("' . $absolute . ':Nette:Micro:", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
 	}
 
 

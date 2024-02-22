@@ -7,6 +7,13 @@ We upload images to some storage. We provide specific previews
 pictures. Allows you to download files.
 
 
+## Installation
+
+The recommended way to install is via Composer:
+
+	composer require tacoberu/nette-media
+
+
 
 ## Using in a template
 
@@ -37,11 +44,9 @@ And non-image file:
 ## Configuration
 
 	extensions:
-		media: Taco\NetteWebImages\Extension
+		media: Taco\NetteWebImages\Extension(%tempDir%)
 
 	media:
-		# Where to save thumbnails. It can be lubricated at any time.
-		cacheDir: %appDir%/../temp/assets
 		# Where source images are taken.
 		providers:
 			- Taco\NetteWebImages\DefaultImageProvider(%appDir%/../../var/uploads)

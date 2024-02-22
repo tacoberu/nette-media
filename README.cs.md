@@ -7,6 +7,13 @@ Uploadujeme obrázky do nějakého úložiště. Poskytujeme konkrétní náhled
 obrázků. Umožňuje stahování souborů.
 
 
+## Instalace
+
+Doporučený způsob pomocí Composer:
+
+	composer require tacoberu/nette-media
+
+
 
 ## Odkazování v šabloně
 
@@ -37,11 +44,9 @@ A neobrázkový soubor:
 ## Konfigurace
 
 	extensions:
-		media: Taco\NetteWebImages\Extension
+		media: Taco\NetteWebImages\Extension(%tempDir%)
 
 	media:
-		# Kam se mají ukládat náhledy. Je možné kdykoliv promazat.
-		cacheDir: %appDir%/../temp/assets
 		# Kde se berou zdrojové obrázky.
 		providers:
 			- Taco\NetteWebImages\DefaultImageProvider(%appDir%/../../var/uploads)

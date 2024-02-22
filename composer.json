@@ -28,12 +28,12 @@
         "source": "https://github.com/tacoberu/nette-media"
     },
     "require": {
-        "php": ">=5.4",
-        "nette/application": ">=2.2.0,<2.5.0",
-        "nette/di": ">=2.2.0,<2.5.0",
-        "nette/http": ">=2.2.0,<2.5.0",
-        "latte/latte": ">=2.2.0,<2.5.0",
-        "nette/utils": ">=2.2.0,<2.6.0"
+        "php": ">=7.4",
+        "nette/application": ">=2.5.0",
+        "nette/di": ">=2.5.0",
+        "nette/http": ">=2.5.0",
+        "latte/latte": ">=2.5.0",
+        "nette/utils": ">=2.6.0"
     },
     "autoload": {
         "classmap": ["src/"]
