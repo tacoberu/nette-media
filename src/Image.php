@@ -65,16 +65,14 @@ class Image
 
 
 
-	function getNetteImage()
+	function getNetteImage(): ?NImage
 	{
 		if ($this->file) {
-			$image = NImage::fromFile($this->file);
-			return $image;
+			return NImage::fromFile($this->file);
 		}
 		// Nahráli jsme obsah z contentu.
 		if ($this->content) {
-			$image = NImage::fromString($this->content);
-			return $image;
+			return NImage::fromString($this->content);
 		}
 	}
 
@@ -136,8 +134,11 @@ class Image
 		}
 
 		// Změny jsou
-		$image = $this->getNetteImage();
-		return $image->save($file, $quality, $type);
+		if ($image = $this->getNetteImage()) {
+			$image->save($file, $quality, $type);
+			return True;
+		}
+		return False;
 	}
 
 

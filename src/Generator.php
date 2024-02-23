@@ -216,13 +216,13 @@ class Generator
 
 
 
-	private function saveToCache($request, $image, $quality, $format)
+	private function saveToCache($request, NImage $image, $quality, $format)
 	{
 		$destination = implode(DIRECTORY_SEPARATOR, [$this->cacheDir, $request->parameters['size'], $request->getId()]);
 		self::mkdir(dirname($destination));
 		$success = $image->save($destination, $quality, $format);
 		if (!$success) {
-			throw new Application\BadRequestException;
+			//~ throw new Application\BadRequestException;
 		}
 		return $image;
 	}
