@@ -46,7 +46,7 @@ class DefaultImageProvider implements IProvider
 			$format = $request->getFormat();
 			return Image::fromFile($path /*, $format*/);
 		}
-		throw new \RuntimeException("File not found.");
+		throw IOException::FileNotFound();
 	}
 
 
@@ -60,7 +60,7 @@ class DefaultImageProvider implements IProvider
 		if (is_file($path)) {
 			return new FileContent(new SplFileInfo($path));
 		}
-		throw new \RuntimeException("File not found.");
+		throw IOException::FileNotFound();
 	}
 
 }

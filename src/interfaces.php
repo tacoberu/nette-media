@@ -36,6 +36,15 @@ interface Ref
 
 
 
+interface Transformation
+{
+
+	function transform(Image $image): Image;
+
+}
+
+
+
 interface Content
 {
 
@@ -46,5 +55,26 @@ interface Content
 	function getName();
 
 	function getContent();
+
+}
+
+
+
+interface ThumbnailsCache
+{
+
+	/**
+	 * @param string $id For example: 'dee/uee.jpg'
+	 * @param string $variant For example: 'small'
+	 */
+	function load(string $id, string $variant): ?Image;
+
+
+
+	/**
+	 * @param string $id For example: 'dee/uee.jpg'
+	 * @param string $variant For example: 'small'
+	 */
+	function save(string $id, string $variant, Image $image): void;
 
 }

@@ -20,7 +20,7 @@ use LogicException;
 
 
 /**
- * Poskytuje obrázky. Obrázky kešuje, validuje.
+ * Provides images. Caches images, validates allowed variants.
  */
 class Generator
 {
@@ -28,12 +28,8 @@ class Generator
 	use Nette\SmartObject;
 
 
-	const FORMAT_JPEG = NImage::JPEG;
-	const FORMAT_PNG = NImage::PNG;
-	const FORMAT_GIF = NImage::GIF;
-
-	/** @var string */
-	private $cacheDir;
+	/** @var ThumbnailsCache */
+	private $cache;
 
 	/** @var Http\IRequest */
 	private $httpRequest;
@@ -48,9 +44,9 @@ class Generator
 	private $providers = [];
 
 
-	function __construct(string $cacheDir, Http\IRequest $httpRequest, Http\IResponse $httpResponse, Validator $validator)
+	function __construct(ThumbnailsCache $cache, Http\IRequest $httpRequest, Http\IResponse $httpResponse, Validator $validator)
 	{
-		$this->cacheDir = $cacheDir;
+		$this->cache = $cache;
 		$this->httpRequest = $httpRequest;
 		$this->httpResponse = $httpResponse;
 		$this->validator = $validator;
@@ -120,7 +116,6 @@ class Generator
 	{
 		// Load from cache.
 		if (isset($request->parameters['size']) && $image = $this->loadFromCache($request)) {
-		//~ if ($image = $this->cache->get($request)) {
 			$image->send();
 			exit;
 		}
@@ -138,28 +133,23 @@ class Generator
 			exit;
 		}
 
-		$params = $request->getParameters();
-		$quality = isset($params['quality']) ? $params['quality'] : 100;
-
-		// Převést normalizované procentní velikost na škálu 0-9 u png
-		switch ($request->getFormat()) {
-			case NImage::PNG:
-				$quality = (int) ($quality / 11.11);
-				break;
+		// Shrink only larger ones.
+		if (isset($request->parameters['size']) && ! self::smallestThan($image, $request)) {
+			$image = (new ResizeTransformation(isset($request->parameters['quality']) ? $request->parameters['quality'] : 100
+				, $request->getFormat()
+				, $request->getWidth()
+				, $request->getHeight()
+				, isset($request->parameters['algorithm']) ? $request->parameters['algorithm'] : 'fit'
+				))
+				->transform($image);
 		}
 
-		if (isset($params['size']) && ! self::smallestThan($image, $request)) {
-			$algorithm = isset($params['algorithm']) ? $params['algorithm'] : 'fit';
-			$width = $request->getWidth();
-			$height = $request->getHeight();
-			$image = $this->resize($image, $quality, $request->getFormat(), $width, $height, $algorithm);
-			if (isset($request->parameters['size'])) {
-				$image = $this->saveToCache($request, $image, $quality, $request->getFormat());
-				//~ $this->cache->store($request, $image);
-			}
+		// Even save the unreduced preview in the cache so that I don't have to try it every time I request it
+		if (isset($request->parameters['size'])) {
+			$this->saveToCache($request, $image);
 		}
 
-		$image->send($request->getFormat(), $quality);
+		$image->send();
 		exit;
 	}
 
@@ -173,9 +163,6 @@ class Generator
 				return $file;
 			}
 		}
-		//~ $this->httpResponse->setHeader('Content-Type', 'image/jpeg');
-		//~ $this->httpResponse->setCode(Http\IResponse::S404_NOT_FOUND);
-		//~ exit;
 		throw new Application\BadRequestException("File '{$id}' is not found.", Http\IResponse::S404_NOT_FOUND);
 	}
 
@@ -189,74 +176,19 @@ class Generator
 
 
 
-	/**
-	 * @return Nette\Utils\Image
-	 */
-	private function resize(Image $image, $quality, $format, $width, $height, $algorithm)
+	private function loadFromCache($request): ?Image
 	{
-		NValidators::assert($quality, 'int');
-		NValidators::assert($width, 'int:1..');
-		NValidators::assert($height, 'int:1..');
-		NValidators::assert($algorithm, 'string');
-		// @FIXME Taková divočina. To s tím vlastním Image nechce moc dobře fungovat.
-		$nimage = $image->getNetteImage();
-		$nimage->resize($width, $height, self::castAlgorithm($algorithm));
-		return $nimage;
+		return $this->cache->load($request->getId(), $request->parameters['size']);
 	}
 
 
 
-	private function loadFromCache($request)
+	private function saveToCache($request, Image $image): void
 	{
-		$file = implode(DIRECTORY_SEPARATOR, [$this->cacheDir, $request->parameters['size'], $request->getId()]);
-		if (file_exists($file)) {
-			return Image::fromFile($file);
-		}
-	}
-
-
-
-	private function saveToCache($request, NImage $image, $quality, $format)
-	{
-		$destination = implode(DIRECTORY_SEPARATOR, [$this->cacheDir, $request->parameters['size'], $request->getId()]);
-		self::mkdir(dirname($destination));
-		$success = $image->save($destination, $quality, $format);
-		if (!$success) {
-			//~ throw new Application\BadRequestException;
-		}
-		return $image;
-	}
-
-
-
-	private static function mkdir($dirname)
-	{
-		if (!is_dir($dirname)) {
-			$success = @mkdir($dirname, 0777, TRUE);
-			if (!$success) {
-				throw new Application\BadRequestException;
-			}
-		}
-	}
-
-
-
-	private static function castAlgorithm($s)
-	{
-		switch ($s) {
-			case 'shrink':
-				return NImage::SHRINK_ONLY;
-			case 'stretch':
-				return NImage::STRETCH;
-			case 'fit':
-				return NImage::FIT;
-			case 'fill':
-				return NImage::FILL;
-			case 'exact':
-				return NImage::EXACT;
-			default:
-				throw new LogicException("Unsupported algorithm: $s.");
-		}
+		$this->cache->save($request->getId()
+			, $request->parameters['size']
+			, $image
+			);
 	}
 
 }

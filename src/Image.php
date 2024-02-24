@@ -12,27 +12,62 @@ namespace Taco\NetteWebImages;
 
 use Nette\Utils\Image as NImage;
 use Nette;
+use LogicException;
+use RuntimeException;
 
 
 /**
- * Když načteme obrázek ze souboru, nebo ze stringu, a neděláme nad tím žádné operace, tak je blbé, když nám ho gd modifikuje.
+ * When we load an image from a file or from a string, and we don't do any
+ * operations on it, it's stupid when gd modifies it for us.
  */
 class Image
 {
-	/** @var string */
+	const FORMAT_JPEG = NImage::JPEG;
+	const FORMAT_PNG = NImage::PNG;
+	const FORMAT_GIF = NImage::GIF;
+	const FORMAT_WEBP = NImage::WEBP;
+	const FORMAT_AVIF = NImage::AVIF;
+	const FORMAT_BMP = NImage::BMP;
+
+
+	const DefaultFormat = self::FORMAT_JPEG;
+
+
+	/**
+	 * We uploaded the content using a file.
+	 * @var string
+	 */
 	private $file;
 
-	/** @var string */
+	/**
+	 * We uploaded the content as a character stream.
+	 * @var string
+	 */
 	private $content;
+
+	/**
+	 * We did some transformations so we have the image stored in GD resource.
+	 * @var NImage
+	 */
+	private $nobj;
+
+	/**
+	 * When performing transformations, we can affect the quality of image compression. But it only applies to NImage.
+	 */
+	private ?int $quality = null;
+
+	/**
+	 * When performing transformations, we can change the image format. But it only applies to NImage.
+	 */
+	private ?int $type = null;
+
 
 	/**
 	 * Opens image from file.
 	 * @param  string
-	 * @throws Nette\NotSupportedException if gd extension is not loaded
-	 * @throws UnknownImageFileException if file not found or file type is not known
 	 * @return self
 	 */
-	static function fromFile($file)
+	static function fromFile(string $file)
 	{
 		$inst = new static();
 		$inst->file = $file;
@@ -47,7 +82,7 @@ class Image
 	 * @return self
 	 * @throws ImageException
 	 */
-	static function fromString($content)
+	static function fromString(string $content)
 	{
 		$inst = new static();
 		$inst->content = $content;
@@ -56,9 +91,17 @@ class Image
 
 
 
-	/**
-	 * @param  resource
-	 */
+	static function fromNetteImage(NImage $obj, ?int $type = Null, ?int $quality = Null)
+	{
+		$inst = new static();
+		$inst->nobj = $obj;
+		$inst->type = $type;
+		$inst->quality = $quality;
+		return $inst;
+	}
+
+
+
 	private function __construct()
 	{
 	}
@@ -67,12 +110,47 @@ class Image
 
 	function getNetteImage(): ?NImage
 	{
-		if ($this->file) {
-			return NImage::fromFile($this->file);
+		switch (True) {
+			case isset($this->file):
+				return NImage::fromFile($this->file);
+
+			case isset($this->content):
+				return NImage::fromString($this->content);
+
+			case isset($this->nobj):
+				return clone $this->nobj;
+
+			default:
+				throw new LogicException("oops.");
 		}
-		// Nahráli jsme obsah z contentu.
-		if ($this->content) {
-			return NImage::fromString($this->content);
+	}
+
+
+
+	/**
+	 * @return string like "images/jpeg"
+	 */
+	private function getMimeType(): string
+	{
+		switch (True) {
+			case isset($this->file):
+				if ($type = NImage::detectTypeFromFile($this->file)) {
+					return image_type_to_mime_type($type);
+				}
+				return Null;
+
+			case isset($this->content):
+				if ($type = NImage::detectTypeFromString($this->content)) {
+					return image_type_to_mime_type($type);
+				}
+				return Null;
+
+			// If the content is stored as a gd resource, it has no type.
+			case isset($this->nobj):
+				return Null;
+
+			default:
+				throw new LogicException("oops.");
 		}
 	}
 
@@ -80,101 +158,124 @@ class Image
 
 	/**
 	 * Outputs image to browser.
-	 * @param  int  image type
-	 * @param  int  quality 0..100 (for JPEG and PNG)
-	 * @return bool TRUE on success or FALSE on failure.
 	 */
-	function send($type = NImage::JPEG, $quality = NULL)
+	function send(): void
 	{
-		if (!in_array($type, array(NImage::JPEG, NImage::PNG, NImage::GIF), TRUE)) {
-			throw new Nette\InvalidArgumentException("Unsupported image type '$type'.");
+		switch (True) {
+			case isset($this->file):
+				$mimeType = $this->getMimeType() ?? image_type_to_mime_type(self::DefaultFormat);
+				header('Content-Type: ' . $mimeType);
+				readfile($this->file);
+				exit;
+
+			case isset($this->content):
+				$mimeType = $this->getMimeType() ?? image_type_to_mime_type(self::DefaultFormat);
+				header('Content-Type: ' . $mimeType);
+				echo($this->content);
+				exit;
+
+			case isset($this->nobj):
+				$type = $this->type ?? NImage::JPEG;
+				$quality = self::normalizeQuality($this->quality, $type);
+				$this->nobj->send($type, $quality);
+				exit;
+
+			default:
+				throw new LogicException("oops.");
 		}
-		header('Content-Type: ' . image_type_to_mime_type($type));
-		return $this->save(NULL, $quality, $type);
 	}
 
 
 
 	/**
-	 * @deprecated
 	 * Saves image to the file.
 	 * @param  string  filename
-	 * @param  int  quality 0..100 (for JPEG and PNG)
-	 * @param  int  optional image type
-	 * @return bool TRUE on success or FALSE on failure.
 	 */
-	function save($file = NULL, $quality = NULL, $type = NULL)
+	function save(string $file): void
 	{
-		if ($type === NULL) {
-			$type = self::typeFromFile($file);
-		}
+		switch (True) {
+			case isset($this->file):
+				copy($this->file, $file);
+				return;
 
-		// Nahráli jsme obsah pomocí souboru.
-		if ($this->file) {
-			$origtype = self::typeFromFile($this->file);
-			// Pokud nejsou žádné změny, tak rovnou vypisujeme originál.
-			if ($type == $origtype && (
-					empty($quality)
-					|| ($type == NImage::GIF)
-					|| ($type == NImage::PNG && $quality == 9)
-					|| ($type == NImage::JPEG && $quality == 100))) {
-				if ($file) {
-					return copy($this->file, $file);
+			case isset($this->content):
+				if ( ! file_put_contents($file, $this->content)) {
+					throw IOException::FailedToSaveFile($file);
 				}
-				else {
-					readfile($this->file);
-					return True;
-				}
+				return;
+
+			case isset($this->nobj):
+				self::assertFileExtension($file, $this->type);
+				$type = $this->type ?? NImage::JPEG;
+				$quality = self::normalizeQuality($this->quality, $type);
+				$this->nobj->save($file, $quality, $type);
+				return;
+
+			default:
+				throw new LogicException("oops.");
+		}
+	}
+
+
+
+	private static function typeByFileExtension($file)
+	{
+		if ($ext = pathinfo($file, PATHINFO_EXTENSION)) {
+			switch (strtolower($ext)) {
+				case 'jpe':
+				case 'jpg':
+				case 'jpeg':
+					return NImage::JPEG;
+				case 'png':
+					return NImage::PNG;
+				case 'gif':
+					return NImage::GIF;
+				case 'bmp':
+					return NImage::BMP;
+				case 'webp':
+					return NImage::WEBP;
+				case 'avif':
+					return NImage::AVIF;
+				default:
+					$file = basename($file);
+					throw new Nette\InvalidArgumentException("Unsupported file image extension '$file'.");
 			}
 		}
-
-		// Nahráli jsme obsah jako proud znaků.
-		if ($this->content) {
-			die('=====[' . __line__ . '] ' . __file__);
-		}
-
-		// Změny jsou
-		if ($image = $this->getNetteImage()) {
-			$image->save($file, $quality, $type);
-			return True;
-		}
-		return False;
+		return Null;
 	}
 
 
 
-	private static function typeFromFile($file)
+	private static function normalizeQuality($quality, $type)
 	{
-		if ( ! $ext = pathinfo($file, PATHINFO_EXTENSION)) {
-			$ext = self::typeFromFileContent($file);
+		// Convert normalized percentage size to 0-9 scale for png
+		switch ($type) {
+			case NImage::PNG:
+				$quality = (int) ($quality / 11.11);
+				break;
 		}
-		switch (strtolower($ext)) {
-			case 'jpg':
-			case 'jpeg':
-				return NImage::JPEG;
-			case 'png':
-				return NImage::PNG;
-			case 'gif':
-				return NImage::GIF;
-			default:
-				throw new Nette\InvalidArgumentException("Unsupported file extension '$file'.");
-		}
+		return $quality;
 	}
 
 
 
-	private static function typeFromFileContent($file)
+	private static function assertFileExtension(string $file, $type)
 	{
-		$type = mime_content_type((string)$file);
-		if (empty($type)) {
-			return Null;
+		if ($type === Null) {
+			return;
 		}
-		list($category, $type) = explode('/', $type, 2);
-		if ($category != 'image') {
-			return Null;
-		}
-		return $type;
-	}
+		$currtype = self::typeByFileExtension($file);
 
+		// a directory or an image without an extension
+		if ($currtype === Null) {
+			return;
+		}
+		if ($type === $currtype) {
+			return;
+		}
+		$ext = pathinfo($file, PATHINFO_EXTENSION);
+		$mimecontent = image_type_to_mime_type($type);
+		throw new RuntimeException("You are trying to save a file with the extension '{$ext}' but the image type is: '{$mimecontent}'.");
+	}
 
 }

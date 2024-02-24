@@ -23,26 +23,12 @@ use Latte;
 class Extension extends DI\CompilerExtension
 {
 
-	/**
-	 * úložiště pro nakešovaná data
-	 * @var string
-	 */
-	private string $cacheDir;
-
-
-	function __construct($cacheDir)
-	{
-		$this->cacheDir = $cacheDir;
-	}
-
-
-
 	function getConfigSchema(): Nette\Schema\Schema
 	{
 		return Expect::structure([
 			'prependRoutesToRouter' => Expect::bool()->default(True),
 			'injectToLatte' => Expect::bool()->default(True),
-			'cacheDir' => Expect::string()->default($this->cacheDir),
+			'cache' => Expect::type(Statement::class),
 			'routes' => Expect::listOf('string'),
 			'rules' => Expect::arrayOf(Expect::structure([
 				'width' => Expect::int(),
@@ -63,10 +49,11 @@ class Extension extends DI\CompilerExtension
 		$validator = $container->addDefinition($this->prefix('validator'))
 			->setClass(Validator::class);
 
+		$container->addDefinition($this->prefix('cache'))
+			->setCreator($this->getConfig()->cache);
+
 		$generator = $container->addDefinition($this->prefix('generator'))
-			->setFactory(Generator::class, [
-				'cacheDir' => $this->getConfig()->cacheDir,
-			]);
+			->setClass(Generator::class);
 
 		foreach ($this->getConfig()->rules as $name => $rule) {
 			$validator->addSetup('$service->addRule(?, ?, ?, ?, ?)', [

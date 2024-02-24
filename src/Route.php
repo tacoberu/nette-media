@@ -14,10 +14,6 @@ namespace Taco\NetteWebImages;
 use Nette\Application;
 
 
-/**
- * @TODO Validace algorithm.
- * @TODO Vyhodit starý kód.
- */
 class Route extends Application\Routers\Route
 {
 
@@ -25,14 +21,20 @@ class Route extends Application\Routers\Route
 	const FORMAT_JPG = 'jpg';
 	const FORMAT_PNG = 'png';
 	const FORMAT_GIF = 'gif';
+	const FORMAT_BMP = 'bmp';
+	const FORMAT_AVIF = 'avif';
+	const FORMAT_WEBP = 'webp';
 
 
 	/** @var array */
-	static $supportedFormats = [
-		self::FORMAT_JPEG => Generator::FORMAT_JPEG,
-		self::FORMAT_JPG => Generator::FORMAT_JPEG,
-		self::FORMAT_PNG => Generator::FORMAT_PNG,
-		self::FORMAT_GIF => Generator::FORMAT_GIF,
+	private static $supportedFormats = [
+		self::FORMAT_JPEG => Image::FORMAT_JPEG,
+		self::FORMAT_JPG => Image::FORMAT_JPEG,
+		self::FORMAT_PNG => Image::FORMAT_PNG,
+		self::FORMAT_GIF => Image::FORMAT_GIF,
+		self::FORMAT_BMP => Image::FORMAT_BMP,
+		self::FORMAT_AVIF => Image::FORMAT_AVIF,
+		self::FORMAT_WEBP => Image::FORMAT_WEBP,
 	];
 
 	/** @var string */
@@ -40,7 +42,6 @@ class Route extends Application\Routers\Route
 
 	/** @var Generator */
 	private $generator;
-
 
 
 	/**
@@ -91,7 +92,7 @@ class Route extends Application\Routers\Route
 			return;
 		}
 
-		$ext = self::parseExtension($id);
+		$ext = strtolower(self::parseExtension($id));
 		if (empty($ext)) {
 			$ext = $this->generator->guessExtension($id);
 		}
@@ -125,7 +126,7 @@ class Route extends Application\Routers\Route
 
 
 	/**
-	 * Rozdělí cestu se jménem souboru od přípony, ze které se pak určuje formát.
+	 * It splits the filename path from the extension, from which the format is then determined.
 	 * @return string|null
 	 */
 	private function parseExtension($id)
@@ -142,7 +143,7 @@ class Route extends Application\Routers\Route
 
 
 	/**
-	 * Doplní další parametry.
+	 * Adds other parameters.
 	 * @return array
 	 */
 	private function unpackParameters($args)
@@ -157,7 +158,7 @@ class Route extends Application\Routers\Route
 
 
 	/**
-	 * Používáme dvojtečku pro oddělení namespace, namísto lomítka. Protože lomítku nette router parsuje.
+	 * We use a colon to separate namespaces, instead of a slash. Because the slash is parsed by the nette router.
 	 */
 	private static function unescape($id)
 	{
