@@ -8,7 +8,7 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Utils\Image as NImage;
 use Nette;
@@ -20,7 +20,7 @@ use RuntimeException;
  * When we load an image from a file or from a string, and we don't do any
  * operations on it, it's stupid when gd modifies it for us.
  */
-class Image
+class Image implements Content
 {
 	const FORMAT_JPEG = NImage::JPEG;
 	const FORMAT_PNG = NImage::PNG;
@@ -35,19 +35,19 @@ class Image
 
 	/**
 	 * We uploaded the content using a file.
-	 * @var string
+	 * @var ?string
 	 */
 	private $file;
 
 	/**
 	 * We uploaded the content as a character stream.
-	 * @var string
+	 * @var ?string
 	 */
 	private $content;
 
 	/**
 	 * We did some transformations so we have the image stored in GD resource.
-	 * @var NImage
+	 * @var ?NImage
 	 */
 	private $nobj;
 
@@ -63,13 +63,28 @@ class Image
 
 
 	/**
+	 * @return self
+	 */
+	static function fromContent(Content $src)
+	{
+		switch (True) {
+			case $src instanceof FileContent:
+				return self::fromFile($src->getFile());
+			default:
+				return self::fromString($src->getContent());
+		}
+	}
+
+
+
+	/**
 	 * Opens image from file.
-	 * @param  string
+	 * @param  string $file
 	 * @return self
 	 */
 	static function fromFile(string $file)
 	{
-		$inst = new static();
+		$inst = new self();
 		$inst->file = $file;
 		return $inst;
 	}
@@ -78,22 +93,24 @@ class Image
 
 	/**
 	 * Create a new image from the image stream in the string.
-	 * @param  string
+	 * @param  string $content
 	 * @return self
-	 * @throws ImageException
 	 */
 	static function fromString(string $content)
 	{
-		$inst = new static();
+		$inst = new self();
 		$inst->content = $content;
 		return $inst;
 	}
 
 
 
+	/**
+	 * @return self
+	 */
 	static function fromNetteImage(NImage $obj, ?int $type = Null, ?int $quality = Null)
 	{
-		$inst = new static();
+		$inst = new self();
 		$inst->nobj = $obj;
 		$inst->type = $type;
 		$inst->quality = $quality;
@@ -128,22 +145,17 @@ class Image
 
 
 	/**
-	 * @return string like "images/jpeg"
+	 * Internal typ: jpeg = 2, png = 3
+	 * @return ?int
 	 */
-	private function getMimeType(): string
+	function getType()
 	{
 		switch (True) {
 			case isset($this->file):
-				if ($type = NImage::detectTypeFromFile($this->file)) {
-					return image_type_to_mime_type($type);
-				}
-				return Null;
+				return NImage::detectTypeFromFile($this->file);
 
 			case isset($this->content):
-				if ($type = NImage::detectTypeFromString($this->content)) {
-					return image_type_to_mime_type($type);
-				}
-				return Null;
+				return NImage::detectTypeFromString($this->content);
 
 			// If the content is stored as a gd resource, it has no type.
 			case isset($this->nobj):
@@ -157,28 +169,66 @@ class Image
 
 
 	/**
-	 * Outputs image to browser.
+	 * @return string Like "images/jpeg"
 	 */
-	function send(): void
+	function getContentType()
+	{
+		if ($val = $this->getType()) {
+			return image_type_to_mime_type($val);
+		}
+		return image_type_to_mime_type(self::DefaultFormat);
+	}
+
+
+
+	/**
+	 * @return int
+	 */
+	function getSize()
 	{
 		switch (True) {
 			case isset($this->file):
-				$mimeType = $this->getMimeType() ?? image_type_to_mime_type(self::DefaultFormat);
-				header('Content-Type: ' . $mimeType);
-				readfile($this->file);
-				exit;
+				return (int) filesize($this->file);
 
 			case isset($this->content):
-				$mimeType = $this->getMimeType() ?? image_type_to_mime_type(self::DefaultFormat);
-				header('Content-Type: ' . $mimeType);
-				echo($this->content);
-				exit;
+				return strlen($this->content);
+
+			case isset($this->nobj):
+				return 0;
+
+			default:
+				throw new LogicException("oops.");
+		}
+	}
+
+
+
+	/**
+	 * @return string
+	 */
+	function getName()
+	{
+		throw new \LogicException("Neimplementováno. Neptej se, a přiřaď si to jinak.");
+	}
+
+
+
+	/**
+	 * @return string
+	 */
+	function getContent()
+	{
+		switch (True) {
+			case isset($this->file):
+				return (string) file_get_contents($this->file);
+
+			case isset($this->content):
+				return $this->content;
 
 			case isset($this->nobj):
 				$type = $this->type ?? NImage::JPEG;
 				$quality = self::normalizeQuality($this->quality, $type);
-				$this->nobj->send($type, $quality);
-				exit;
+				return (string) $this->nobj->toString($type, $quality);
 
 			default:
 				throw new LogicException("oops.");
@@ -189,9 +239,10 @@ class Image
 
 	/**
 	 * Saves image to the file.
-	 * @param  string  filename
+	 * @param  string  $file
+	 * @return void
 	 */
-	function save(string $file): void
+	function save(string $file)
 	{
 		switch (True) {
 			case isset($this->file):
@@ -199,7 +250,7 @@ class Image
 				return;
 
 			case isset($this->content):
-				if ( ! file_put_contents($file, $this->content)) {
+				if ( ! @file_put_contents($file, $this->content)) {
 					throw IOException::FailedToSaveFile($file);
 				}
 				return;
@@ -218,6 +269,11 @@ class Image
 
 
 
+	/**
+	 * @param string $file
+	 * @return ?int
+	 * @throws Nette\InvalidArgumentException
+	 */
 	private static function typeByFileExtension($file)
 	{
 		if ($ext = pathinfo($file, PATHINFO_EXTENSION)) {
@@ -246,6 +302,11 @@ class Image
 
 
 
+	/**
+	 * @param int $quality
+	 * @param int $type
+	 * @return int
+	 */
 	private static function normalizeQuality($quality, $type)
 	{
 		// Convert normalized percentage size to 0-9 scale for png
@@ -259,6 +320,11 @@ class Image
 
 
 
+	/**
+	 * @param string $file
+	 * @param ?int $type
+	 * @return void
+	 */
 	private static function assertFileExtension(string $file, $type)
 	{
 		if ($type === Null) {

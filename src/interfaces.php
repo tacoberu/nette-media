@@ -9,28 +9,16 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 
-interface IProvider
+interface MediaProvider
 {
 
-	const FIT = 0;
-	const EXACT = 1;
-	const EXACT_HEIGHT_FIT_WIDTH = 2;
-
-
-
-	function getImage(ImageRequest $request);
-
-}
-
-
-
-interface Ref
-{
-
-	function getRef();
+	/**
+	 * @return Content
+	 */
+	function getContent(ContentRequest $request);
 
 }
 
@@ -48,12 +36,24 @@ interface Transformation
 interface Content
 {
 
+	/**
+	 * @return string Like "images/jpeg"
+	 */
 	function getContentType();
 
+	/**
+	 * @return int
+	 */
 	function getSize();
 
+	/**
+	 * @return string
+	 */
 	function getName();
 
+	/**
+	 * @return string
+	 */
 	function getContent();
 
 }
@@ -66,15 +66,17 @@ interface ThumbnailsCache
 	/**
 	 * @param string $id For example: 'dee/uee.jpg'
 	 * @param string $variant For example: 'small'
+	 * @return ?Image
 	 */
-	function load(string $id, string $variant): ?Image;
+	function load(string $id, string $variant);
 
 
 
 	/**
 	 * @param string $id For example: 'dee/uee.jpg'
 	 * @param string $variant For example: 'small'
+	 * @return void
 	 */
-	function save(string $id, string $variant, Image $image): void;
+	function save(string $id, string $variant, Image $image);
 
 }

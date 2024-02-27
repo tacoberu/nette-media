@@ -9,24 +9,24 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Utils\Validators;
 use SplFileInfo;
 
 
-class DefaultImageProvider implements IProvider
+class FileBasedProvider implements MediaProvider
 {
 
 	/**
-	 * Umístění zdrojů obrázků.
+	 * Umístění zdrojů souborů.
 	 * @var string
 	 */
 	private $sourceDir;
 
 
 	/**
-	 * @param string
+	 * @param string $sourceDir
 	 */
 	function __construct($sourceDir)
 	{
@@ -37,30 +37,16 @@ class DefaultImageProvider implements IProvider
 
 
 	/**
-	 * @return Image
+	 * V tomto případě nám doplnující informace o zdroji nezajímají.
+	 * @return ?Content
 	 */
-	function getImage(ImageRequest $request)
+	function getContent(ContentRequest $request)
 	{
 		$path = $this->sourceDir . '/' . $request->getId();
 		if (is_file($path)) {
-			$format = $request->getFormat();
-			return Image::fromFile($path /*, $format*/);
-		}
-		throw IOException::FileNotFound();
-	}
-
-
-
-	/**
-	 * @return Content
-	 */
-	function getContent($id)
-	{
-		$path = $this->sourceDir . '/' . $id;
-		if (is_file($path)) {
 			return new FileContent(new SplFileInfo($path));
 		}
-		throw IOException::FileNotFound();
+		return Null;
 	}
 
 }

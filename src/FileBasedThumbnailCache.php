@@ -8,7 +8,7 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Utils\Validators;
 use SplFileInfo;
@@ -20,11 +20,14 @@ use SplFileInfo;
 class FileBasedThumbnailCache implements ThumbnailsCache
 {
 
+	/**
+	 * @var string
+	 */
 	private $cacheDir;
 
 
 	/**
-	 * @param string
+	 * @param string $cacheDir
 	 */
 	function __construct($cacheDir)
 	{
@@ -37,6 +40,7 @@ class FileBasedThumbnailCache implements ThumbnailsCache
 	/**
 	 * @param string $id For example: 'dee/uee.jpg'
 	 * @param string $variant For example: 'small'
+	 * @return ?Image
 	 */
 	function load(string $id, string $variant): ?Image
 	{
@@ -52,8 +56,9 @@ class FileBasedThumbnailCache implements ThumbnailsCache
 	/**
 	 * @param string $id For example: 'dee/uee.jpg'
 	 * @param string $variant For example: 'small'
+	 * @return void
 	 */
-	function save(string $id, string $variant, Image $image): void
+	function save(string $id, string $variant, Image $image)
 	{
 		$destination = $this->buildDestination($id, $variant);
 		self::mkdir(dirname($destination));
@@ -62,7 +67,10 @@ class FileBasedThumbnailCache implements ThumbnailsCache
 
 
 
-	private function buildDestination(string $id, string $variant): string
+	/**
+	 * @return string
+	 */
+	private function buildDestination(string $id, string $variant)
 	{
 		return implode(DIRECTORY_SEPARATOR, [
 			$this->cacheDir,
@@ -73,6 +81,10 @@ class FileBasedThumbnailCache implements ThumbnailsCache
 
 
 
+	/**
+	 * @param string $dirname
+	 * @return void
+	 */
 	private static function mkdir($dirname)
 	{
 		if (!is_dir($dirname)) {

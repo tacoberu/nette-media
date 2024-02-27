@@ -9,11 +9,12 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Latte;
 use Latte\MacroNode;
 use Latte\PhpWriter;
+use Latte\Macros\MacroSet;
 use InvalidArgumentException;
 
 
@@ -25,9 +26,12 @@ use InvalidArgumentException;
  * <img n:media="shamahFinal.jpg, small">
  * {media $img}
  */
-class Macros extends Latte\Macros\MacroSet
+class Macros extends MacroSet
 {
 
+	/**
+	 * @return void
+	 */
 	static function install(Latte\Compiler $parser)
 	{
 		$me = new static($parser);
@@ -60,7 +64,7 @@ class Macros extends Latte\Macros\MacroSet
 		$node->modifiers = preg_replace('#\|safeurl\s*(?=\||\z)#i', '', $node->modifiers);
 		$args['download'] = true;
 		return $writer->using($node)
-			->write('echo %escape(%modify($this->global->uiPresenter->link("' . $absolute . ':Nette:Micro:", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
+			->write('echo %escape(%modify($this->global->uiPresenter->link("' . $absolute . ':' . Route::Presenter . ':", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
 	}
 
 
@@ -80,13 +84,14 @@ class Macros extends Latte\Macros\MacroSet
 		self::assertCountArgs($args);
 		$node->modifiers = preg_replace('#\|safeurl\s*(?=\||\z)#i', '', $node->modifiers);
 		return $writer->using($node)
-			->write('echo %escape(%modify($this->global->uiControl->link("' . $absolute . ':Nette:Micro:", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
+			->write('echo %escape(%modify($this->global->uiControl->link("' . $absolute . ':' . Route::Presenter . ':", ' . __class__ . '::prepareArguments(' . self::varExportNamed($args) . '))))');
 	}
 
 
 
 	/**
-	 * @return array
+	 * @param array<mixed> $arguments
+	 * @return mixed
 	 */
 	static function prepareArguments(array $arguments)
 	{
@@ -106,6 +111,10 @@ class Macros extends Latte\Macros\MacroSet
 
 
 
+	/**
+	 * @param array<mixed> $args
+	 * @return string
+	 */
 	private static function varExportNamed(array $args)
 	{
 		$args = array_map(function($x) {
@@ -129,6 +138,10 @@ class Macros extends Latte\Macros\MacroSet
 
 
 
+	/**
+	 * @param array<mixed> $args
+	 * @return void
+	 */
 	private static function assertCountArgs(array $args)
 	{
 		if (count($args) > 2) {

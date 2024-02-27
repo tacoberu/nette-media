@@ -8,7 +8,7 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Utils\Image as NImage;
 use Nette\Utils\Validators as NValidators;
@@ -18,33 +18,81 @@ use LogicException;
 class ResizeTransformation implements Transformation
 {
 
-	private $quality, $format, $width, $height, $algorithm;
+	/**
+	 * @var int
+	 */
+	private $quality;
 
-	function __construct($quality, $format, $width, $height, $algorithm)
+	/**
+	 * @var ?int
+	 */
+	private $format;
+
+	/**
+	 * @var int
+	 */
+	private $width;
+
+	/**
+	 * @var int
+	 */
+	private $height;
+
+	/**
+	 * @var string
+	 */
+	private $algorithm;
+
+	/**
+	 * @param int $quality
+	 * @param int $width
+	 * @param int $height
+	 * @param string $algorithm
+	 * @param ?int $format
+	 */
+	function __construct($quality, $width, $height, $algorithm, $format = Null)
 	{
 		NValidators::assert($quality, 'int');
 		NValidators::assert($width, 'int:1..');
 		NValidators::assert($height, 'int:1..');
 		NValidators::assert($algorithm, 'string');
-		//~ NValidators::assert($format, 'int');
+		NValidators::assert($format, 'int|null');
 		$this->quality = $quality;
-		$this->format = $format;
 		$this->width = $width;
 		$this->height = $height;
 		$this->algorithm = $algorithm;
+		$this->format = $format;
 	}
 
 
 
 	function transform(Image $image): Image
 	{
+		// Shrink only larger ones.
+		if (self::smallestThan($image, $this->width, $this->height)) {
+			return $image;
+		}
 		$nimage = $image->getNetteImage();
 		$nimage->resize($this->width, $this->height, self::castAlgorithm($this->algorithm));
-		return Image::fromNetteImage($nimage, $this->format, $this->quality);
+		if ($this->format) {
+			$format = $this->format;
+		}
+		else {
+			$format = $image->getType();
+			if ($format === Null) {
+				$format = Image::DefaultFormat;
+			}
+		}
+
+		return Image::fromNetteImage($nimage, $format, $this->quality);
 	}
 
 
 
+	/**
+	 * @param string $s
+	 * @return int<0, 15>
+	 */
 	private static function castAlgorithm($s)
 	{
 		switch ($s) {
@@ -61,6 +109,20 @@ class ResizeTransformation implements Transformation
 			default:
 				throw new LogicException("Unsupported algorithm: '{$s}'.");
 		}
+	}
+
+
+
+	/**
+	 * @param Image $image
+	 * @param int $width
+	 * @param int $height
+	 * @return bool
+	 */
+	private function smallestThan($image, $width, $height)
+	{
+		$image = $image->getNetteImage();
+		return ! ($image->getWidth() > $width && $image->getHeight() > $height);
 	}
 
 }

@@ -8,20 +8,22 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use SplFileInfo;
 
 
-/**
- * @FIXME
- */
 class FileContent implements Content
 {
 
+	/**
+	 * @var SplFileInfo
+	 */
+	private $file;
+
 
 	/**
-	 * @param string
+	 * @param SplFileInfo $file
 	 */
 	function __construct(SplFileInfo $file)
 	{
@@ -30,6 +32,9 @@ class FileContent implements Content
 
 
 
+	/**
+	 * @return ?string Like "images/jpeg"
+	 */
 	function getContentType()
 	{
 		$res = mime_content_type((string)$this->file);
@@ -39,13 +44,19 @@ class FileContent implements Content
 
 
 
+	/**
+	 * @return int
+	 */
 	function getSize()
 	{
-		return filesize($this->file);
+		return (int) filesize($this->file);
 	}
 
 
 
+	/**
+	 * @return string
+	 */
 	function getName()
 	{
 		return $this->file->getFileName();
@@ -53,9 +64,22 @@ class FileContent implements Content
 
 
 
+	/**
+	 * @return ?string
+	 */
 	function getContent()
 	{
 		return file_get_contents($this->file);
+	}
+
+
+
+	/**
+	 * @return SplFileInfo
+	 */
+	function getFile()
+	{
+		return $this->file;
 	}
 
 }

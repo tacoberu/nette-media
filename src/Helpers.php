@@ -9,7 +9,7 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Application;
 
@@ -17,6 +17,9 @@ use Nette\Application;
 class Helpers
 {
 
+	/**
+	 * @return void
+	 */
 	static function prependRoute(Application\Routers\RouteList $router, Application\IRouter $route)
 	{
 		$router[] = $route;

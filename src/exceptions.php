@@ -8,21 +8,29 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use RuntimeException;
+use LogicException;
+use Nette\Application;
 
 
 class IOException extends RuntimeException
 {
 
-	static function FileNotFound()
+	/**
+	 * @return self
+	 */
+	static function FileNotFound(string $file)
 	{
-		return new self("File not found.");
+		return new self("File '{$file}' is not found.");
 	}
 
 
 
+	/**
+	 * @return self
+	 */
 	static function FailedToCreateDirectory(string $dir)
 	{
 		return new self("Failed to create directory: '{$dir}'.");
@@ -30,9 +38,22 @@ class IOException extends RuntimeException
 
 
 
+	/**
+	 * @return self
+	 */
 	static function FailedToSaveFile(string $file)
 	{
 		return new self("Failed to save file: '{$file}'.");
 	}
 
 }
+
+
+
+class InvalidConfigException extends LogicException
+{}
+
+
+
+class NotAllowedImageException extends Application\BadRequestException
+{}

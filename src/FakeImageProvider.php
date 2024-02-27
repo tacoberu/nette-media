@@ -9,15 +9,15 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Image;
 
 
-class FakeImageProvider implements IProvider
+class FakeImageProvider implements MediaProvider
 {
 
-	function getImage(ImageRequest $request)
+	function getContent(ContentRequest $request)
 	{
 		$width = $request->getWidth();
 		$height = $request->getHeight();
