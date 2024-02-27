@@ -9,13 +9,19 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
+use Nette;
 use Nette\Application;
+use Nette\Http\IRequest as HttpRequest;
+use Nette\Http\UrlScript;
 
 
-class Route extends Application\Routers\Route
+class Route implements Nette\Routing\Router
 {
+
+	const Presenter = 'WebMedia:Media';
+
 
 	const FORMAT_JPEG = 'jpeg';
 	const FORMAT_JPG = 'jpg';
@@ -38,6 +44,9 @@ class Route extends Application\Routers\Route
 	];
 
 	/** @var string */
+	private $basePath;
+
+	/** @var string */
 	private $defaults;
 
 	/** @var Generator */
@@ -45,70 +54,91 @@ class Route extends Application\Routers\Route
 
 
 	/**
-	 * @param  string "assets-<id>[-<size>]
-	 * @param  array ?
+	 * @param  string $basePath "media"
 	 * @param  Generator
 	 * @param  int|NULL ?
 	 */
-	function __construct($mask, array $defaults, Generator $generator, $flags = 0)
+	function __construct(string $basePath, ContentGenerator $generator)
 	{
-		$this->defaults = $defaults;
+		$this->basePath = '/' . trim($basePath, '/');
 		$this->generator = $generator;
-
-		$defaults[NULL][self::FILTER_OUT] = function ($parameters) {
-			$size = $this->acquireArgument('size', $parameters);
-			if ($size && ! $opts = $this->generator->getValidator()->validate($size)) {
-				return False;
-			}
-
-			$id = $this->acquireArgument('id', $parameters);
-			$parameters['id'] = self::escape($id);
-
-			if (isset($this->defaults[NULL][self::FILTER_OUT])) {
-				$parameters = call_user_func($this->defaults[NULL][self::FILTER_OUT], $parameters);
-			}
-
-			return $parameters;
-		};
-
-		$defaults['presenter'] = 'Nette:Micro';
-		$defaults['callback'] = $this;
-
-		parent::__construct($mask, $defaults, $flags);
 	}
 
 
 
-	function __invoke($presenter)
+	function match(HttpRequest $httpRequest): ?array
 	{
-		$parameters = $this->unpackParameters($presenter->getRequest()->getParameters());
-		unset($parameters['callback']);
-
-		$id = $parameters['id'];
-		unset($parameters['id']);
-
-		if (array_key_exists('download', $parameters)) {
-			$this->generator->generateDownload(self::unescape($id));
-			return;
-		}
-
-		$ext = strtolower(self::parseExtension($id));
-		if (empty($ext)) {
-			$ext = $this->generator->guessExtension($id);
-		}
+		$path = $httpRequest->getUrl()->getPath();
+		$ext = strtolower(self::parseExtension($path));
 		if ( ! isset(self::$supportedFormats[$ext])) {
-			$this->generator->generateFile(self::unescape($id));
+			return Null;
+		}
+		if (strncmp($this->basePath . '/', $path, strlen($this->basePath) + 1) !== 0) {
+			return Null;
 		}
 		else {
-			$format = self::$supportedFormats[$ext];
-			$this->generator->generateImage(new ImageRequest(
-				$format,
-				self::unescape($id),
-				$this->acquireArgument('width', $parameters),
-				$this->acquireArgument('height', $parameters),
-				$parameters
-			));
+			$path = trim(substr($path, strlen($this->basePath)), '/');
 		}
+		$queries = $httpRequest->getUrl()->getQueryParameters();
+		$variant = self::getVariant($queries);
+		if ($variant && ! $this->generator->validVariant($variant)) {
+			return Null;
+		}
+
+		return [
+			'presenter' => self::Presenter,
+			'action' => array_key_exists('download', $queries) ? 'download' : 'show',
+			'source' => trim($this->basePath, '/'),
+			'id' => $path,
+			'variant' => $variant,
+		];
+	}
+
+
+
+	function constructUrl(array $params, UrlScript $refUrl): ?string
+	{
+		unset($params['action']);
+		if (!isset($params['presenter'])
+				|| $params['presenter'] !== self::Presenter
+				|| !isset($params['id'])) {
+			return Null;
+		}
+		$path = "{$this->basePath}/{$params['id']}";
+		if (array_key_exists('download', $params)) {
+			$path .= '?download';
+			return $path;
+		}
+		if (count($params) === 2) {
+			return $path;
+		}
+		if (array_key_exists('size', $params)) {
+			$this->assertVariant($params['size']);
+			$path .= '?' . $params['size'];
+			return $path;
+		}
+		return Null;
+	}
+
+
+
+	private function assertVariant($val)
+	{
+		if (!$this->generator->validVariant($val)) {
+			throw new NotAllowedImageException("Invalid variant of image: '$val'.");
+		}
+	}
+
+
+
+	private static function getVariant(array $queries)
+	{
+		if (array_key_exists('download', $queries)) {
+			return Null;
+		}
+		$queries = array_keys($queries);
+		$variant = reset($queries);
+		return $variant;
 	}
 
 
@@ -140,44 +170,4 @@ class Route extends Application\Routers\Route
 		return Null;
 	}
 
-
-
-	/**
-	 * Adds other parameters.
-	 * @return array
-	 */
-	private function unpackParameters($args)
-	{
-		if ($size = $this->acquireArgument('size', $args)) {
-			$opts = $this->generator->getValidator()->validate($size);
-			$args = array_merge($args, $opts);
-		}
-		return $args;
-	}
-
-
-
-	/**
-	 * We use a colon to separate namespaces, instead of a slash. Because the slash is parsed by the nette router.
-	 */
-	private static function unescape($id)
-	{
-		if ($id instanceof Ref) {
-			$id = $id->getRef();
-		}
-		return strtr($id, ':', '/');
-	}
-
-
-
-	private static function escape($id)
-	{
-		if ($id instanceof Ref) {
-			$id = $id->getRef();
-		}
-		return strtr($id, '/', ':');
-	}
-
 }
-
-class NotAllowedImageException extends Application\BadRequestException {}

@@ -9,13 +9,13 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Utils\Validators;
 use SplFileInfo;
 
 
-class DefaultImageProvider implements IProvider
+class FileBasedProvider implements IProvider
 {
 
 	/**
@@ -46,21 +46,23 @@ class DefaultImageProvider implements IProvider
 			$format = $request->getFormat();
 			return Image::fromFile($path /*, $format*/);
 		}
-		throw IOException::FileNotFound();
+		return Null;
 	}
 
 
 
 	/**
+	 * @param string $id Name of file without sourceDir.
 	 * @return Content
 	 */
 	function getContent($id)
 	{
+		Validators::assert($id, 'string:1..');
 		$path = $this->sourceDir . '/' . $id;
 		if (is_file($path)) {
 			return new FileContent(new SplFileInfo($path));
 		}
-		throw IOException::FileNotFound();
+		return Null;
 	}
 
 }

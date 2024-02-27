@@ -9,7 +9,7 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette;
 
@@ -26,11 +26,8 @@ class ImageRequest
 	/** @var string */
 	private $id;
 
-	/** @var int|NULL */
-	private $width;
-
-	/** @var int|NULL */
-	private $height;
+	/** @var string|null */
+	private $variant;
 
 	/** @var int */
 	private $format;
@@ -41,17 +38,15 @@ class ImageRequest
 
 
 	/**
-	 * @param  int
-	 * @param  string
-	 * @param  int|NULL
-	 * @param  int|NULL
+	 * @param  int $format Number of jpeg, gif, png, etc.
+	 * @param  string $id "dee/Boston city Flow.jpeg"
+	 * @param  string|null $variant Code of rule.
 	 * @param  array
 	 */
-	function __construct($format, $id, $width, $height, array $parameters)
+	function __construct($format, $id, $variant, array $parameters)
 	{
 		$this->id = $id;
-		$this->width = $width;
-		$this->height = $height;
+		$this->variant = $variant;
 		$this->format = $format;
 		$this->parameters = $parameters;
 	}
@@ -69,21 +64,11 @@ class ImageRequest
 
 
 	/**
-	 * @return int|NULL
+	 * @return string|null
 	 */
-	function getWidth()
+	function getVariant()
 	{
-		return $this->width;
-	}
-
-
-
-	/**
-	 * @return int|NULL
-	 */
-	function getHeight()
-	{
-		return $this->height;
+		return $this->variant;
 	}
 
 

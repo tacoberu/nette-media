@@ -8,7 +8,7 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette\Utils\Image as NImage;
 use Nette;
@@ -128,22 +128,17 @@ class Image
 
 
 	/**
-	 * @return string like "images/jpeg"
+	 * Internal typ: jpeg = 2, png = 3
+	 * @return ?int
 	 */
-	private function getMimeType(): string
+	function getType()
 	{
 		switch (True) {
 			case isset($this->file):
-				if ($type = NImage::detectTypeFromFile($this->file)) {
-					return image_type_to_mime_type($type);
-				}
-				return Null;
+				return NImage::detectTypeFromFile($this->file);
 
 			case isset($this->content):
-				if ($type = NImage::detectTypeFromString($this->content)) {
-					return image_type_to_mime_type($type);
-				}
-				return Null;
+				return NImage::detectTypeFromString($this->content);
 
 			// If the content is stored as a gd resource, it has no type.
 			case isset($this->nobj):
@@ -152,6 +147,19 @@ class Image
 			default:
 				throw new LogicException("oops.");
 		}
+	}
+
+
+
+	/**
+	 * @return string like "images/jpeg"
+	 */
+	private function getMimeType(): string
+	{
+		if ($val = $this->getType()) {
+			return image_type_to_mime_type($val);
+		}
+		return Null;
 	}
 
 
@@ -199,7 +207,7 @@ class Image
 				return;
 
 			case isset($this->content):
-				if ( ! file_put_contents($file, $this->content)) {
+				if ( ! @file_put_contents($file, $this->content)) {
 					throw IOException::FailedToSaveFile($file);
 				}
 				return;

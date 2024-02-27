@@ -9,7 +9,7 @@
  * @credits dotBlue (http://dotblue.net)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use Nette;
 use Nette\Application\Routers\Route as NetteRoute;
@@ -18,6 +18,7 @@ use Nette\DI;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
 use Latte;
+use LogicException;
 
 
 class Extension extends DI\CompilerExtension
@@ -29,13 +30,8 @@ class Extension extends DI\CompilerExtension
 			'prependRoutesToRouter' => Expect::bool()->default(True),
 			'injectToLatte' => Expect::bool()->default(True),
 			'cache' => Expect::type(Statement::class),
-			'routes' => Expect::listOf('string'),
-			'rules' => Expect::arrayOf(Expect::structure([
-				'width' => Expect::int(),
-				'height' => Expect::int(),
-				'algorithm' => Expect::string(),
-				'quality' => Expect::int(),
-			]), 'string'),
+			'route' => Expect::type(Statement::class),
+			'transformations' => Expect::arrayOf(Expect::listOf(Statement::class)),
 			'providers' => Expect::listOf(Statement::class),
 		]);
 	}
@@ -46,75 +42,31 @@ class Extension extends DI\CompilerExtension
 	{
 		$container = $this->getContainerBuilder();
 
-		$validator = $container->addDefinition($this->prefix('validator'))
-			->setClass(Validator::class);
-
 		$container->addDefinition($this->prefix('cache'))
 			->setCreator($this->getConfig()->cache);
 
-		$generator = $container->addDefinition($this->prefix('generator'))
-			->setClass(Generator::class);
+		$container->getDefinition($container->getByType(Nette\Application\IPresenterFactory::class))->addSetup(
+			'setMapping',
+			[['WebMedia' => __namespace__ . '\*Presenter']]
+		);
 
-		foreach ($this->getConfig()->rules as $name => $rule) {
-			$validator->addSetup('$service->addRule(?, ?, ?, ?, ?)', [
+		$generator = $container->addDefinition($this->prefix('generator'))
+			->setClass(ContentGenerator::class);
+
+		foreach ($this->getConfig()->transformations as $name => $rule) {
+			$generator->addSetup('$service->addTransformation(?, ?)', [
 				$name,
-				$rule->width,
-				$rule->height,
-				isset($rule->algorithm) ? $rule->algorithm : Null,
-				isset($rule->quality) ? $rule->quality : Null,
+				$rule,
 			]);
 		}
 
-		if (count($this->getConfig()->routes)) {
-			$router = $container->addDefinition($this->prefix('router'))
-				->setClass(Nette\Application\Routers\RouteList::class)
-				->addTag($this->prefix('routeList'))
-				->setAutowired(False);
-
-			$i = 0;
-			foreach ($this->getConfig()->routes as $route => $definition) {
-				if (!is_array($definition)) {
-					$definition = [
-						'mask' => $definition,
-						'defaults' => [],
-					];
-				}
-				else {
-					if (!isset($definition['defaults'])) {
-						$definition['defaults'] = [];
-					}
-				}
-
-				$route = $container->addDefinition($this->prefix('route' . $i))
-					->setFactory(Route::class, [
-						$definition['mask'],
-						$definition['defaults'],
-						$this->prefix('@generator'),
-					])
-					->addTag($this->prefix('route'))
-					->setAutowired(FALSE);
-
-				if (isset($definition['id'])) {
-					if (($parameter = $this->recognizeMaskParameter($definition['id'])) || $parameter === FALSE || $parameter === NULL) {
-						$route->addSetup('setIdParameter', [
-							$parameter,
-						]);
-					}
-					else {
-						$route->addSetup('setId', [
-							$definition['id'],
-						]);
-					}
-				}
-
-				$router->addSetup('$service[] = ?', [
-					$this->prefix('@route' . $i),
-				]);
-
-				$i++;
-			}
-		}
-
+		$router = $container->addDefinition($this->prefix('router'))
+			->setClass(Nette\Application\Routers\RouteList::class)
+			->addTag($this->prefix('routeList'))
+			->setAutowired(False);
+		$router->addSetup('$service[] = ?', [
+			$this->getConfig()->route,
+		]);
 		if (empty($this->getConfig()->providers)) {
 			throw new InvalidConfigException("You have to register at least one IProvider in '" . $this->prefix('providers') . "' directive.");
 		}
@@ -158,19 +110,4 @@ class Extension extends DI\CompilerExtension
 		}
 	}
 
-
-
-	/**
-	 * @param  string
-	 * @return string|NULL
-	 */
-	private function recognizeMaskParameter($value)
-	{
-		if ((substr($value, 0, 1) === '<') && (substr($value, -1) === '>')) {
-			return substr($value, 1, -1);
-		}
-	}
-
 }
-
-class InvalidConfigException extends \Exception {}

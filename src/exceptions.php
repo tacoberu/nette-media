@@ -8,17 +8,19 @@
  * @author Martin Takáč (martin@takac.name)
  */
 
-namespace Taco\NetteWebImages;
+namespace Taco\NetteMedia;
 
 use RuntimeException;
+use LogicException;
+use Nette\Application;
 
 
 class IOException extends RuntimeException
 {
 
-	static function FileNotFound()
+	static function FileNotFound(string $file)
 	{
-		return new self("File not found.");
+		return new self("File '{$file}' is not found.");
 	}
 
 
@@ -36,3 +38,13 @@ class IOException extends RuntimeException
 	}
 
 }
+
+
+
+class InvalidConfigException extends LogicException
+{}
+
+
+
+class NotAllowedImageException extends Application\BadRequestException
+{}
