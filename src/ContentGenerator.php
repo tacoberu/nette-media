@@ -92,6 +92,22 @@ class ContentGenerator
 
 
 	/**
+	 * @return array<string>
+	 */
+	function getTransformationNames()
+	{
+		return array_keys($this->transformations);
+	}
+
+
+
+	function getTransformation($name)
+	{
+		return $this->resolveTransformation($name);
+	}
+
+
+	/**
 	 * Nepokoušej se tento soubor/obrázek zobrazit. Vynutit nabídku k uložení.
 	 * @param ContentRequest $request
 	 * @return ContentResponse

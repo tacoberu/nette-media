@@ -89,6 +89,13 @@ class ResizeTransformation implements Transformation
 
 
 
+	function __toString()
+	{
+		return "Resize(width: {$this->width}, height: {$this->height}, algorithm: {$this->algorithm}, quality: {$this->quality})";
+	}
+
+
+
 	/**
 	 * @param string $s
 	 * @return int<0, 15>

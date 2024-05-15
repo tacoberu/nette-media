@@ -29,6 +29,8 @@ interface Transformation
 
 	function transform(Image $image): Image;
 
+	function __toString();
+
 }
 
 
